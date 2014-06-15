@@ -1,20 +1,66 @@
 # Reproducible Research: Peer Assessment 1
-
+=============================================
 
 ## Loading and preprocessing the data
-
+```{r}
+# loading csv data to data table
+activity <- read.table("activity.csv", sep=",", header=TRUE)
+activity$date <- as.Date(activity$date, format="%Y-%m-%d")
+library(data.table)
+DT <- data.table(activity)
+summary(DT)
+```
 
 
 ## What is mean total number of steps taken per day?
+```{r}
+par(mfrow=c(1,1))
+plot(DT[,sum(steps), by=date], col="red", type="o",main="Number of steps everyday", xlab="date", ylab="steps")
+# mean of number of steps taken per day
+DT[, mean(steps, na.rm=TRUE), by=date]
+# median of number of steps taken everyday
+DT[, as.double(median(steps, na.rm = TRUE)), by=date] 
 
+```
 
 
 ## What is the average daily activity pattern?
+```{r}
+plot(DT[, mean(steps , na.rm = TRUE), by=interval], type='l', main="Average daily steps", ylab="steps", xlab="interval")
+# interval containing maximum number of steps
+DT[, mean(steps , na.rm = TRUE), by=interval][which.max(DT[, mean(steps , na.rm = TRUE), by=interval]$V1)]
 
+
+```
 
 
 ## Imputing missing values
-
+Using interval average for fillin missing data. 
+```{r}
+# total missing values
+DT[is.na(steps)]
+interval_avg <- DT[, mean(steps , na.rm = TRUE), by=interval]
+missing_val <- lapply(DT[is.na(steps)]$interval, function(x)(interval_avg[interval==x]$V1))
+MT <- DT
+MT[is.na(steps)]$steps <- missing_val
+# MT has filled in all NA's
+summary(MT)
+# mean after fillin data
+MT[, mean(steps, na.rm=TRUE), by=date]
+# median after fillin data
+MT[, as.double(median(steps, na.rm = TRUE)), by=date] 
+# plot of the data before and after fillin missing values
+par(mfrow=c(1,1))
+plot(MT[, mean(steps , na.rm = TRUE), by=interval], type='l', main="Average daily steps after imputing missing data", ylab="steps", xlab="interval", col="blue")
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+MT_WEEKEND <- MT[weekdays(date) %in% c('Sunday', 'Saturday')]
+MT_WEEKDAY<-MT[!weekdays(date) %in% c('Sunday', 'Saturday')]
+par(mfrow=c(2,1), mar=c(1, 4.1, 2, 2.1))
+plot(MT_WEEKDAY[, mean(steps), by=interval], type='l', col="red", ylab="weekday steps")
+plot(MT_WEEKEND[, mean(steps), by=interval], type='l', col="blue", ylab="weekend steps")
+
+```
